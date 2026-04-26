@@ -272,6 +272,89 @@ function renderPage(){
   }
 }
 
+// Cascading dropdown update
+function updateDropdowns(changedFilter){
+  var curSeason=document.getElementById('pba-season').value;
+  var curCat=document.getElementById('pba-cat').value;
+  var curPlayer=document.getElementById('pba-player').value;
+
+  // Build base data: apply all filters EXCEPT the one that just changed
+  var base=allData.filter(function(v){
+    if(changedFilter!=='season'&&curSeason&&String(v.season)!==curSeason)return false;
+    if(changedFilter!=='cat'&&curCat&&v.category!==curCat)return false;
+    if(changedFilter!=='player'&&curPlayer){
+      if(!v.players||v.players.indexOf(curPlayer)===-1)return false;
+    }
+    return true;
+  });
+
+  // Update seasons dropdown (if player or cat changed)
+  if(changedFilter!=='season'){
+    var seasons={};
+    base.forEach(function(v){var s=String(v.season);if(!seasons[s])seasons[s]=0;seasons[s]++;});
+    var sel=document.getElementById('pba-season');
+    var prevSeason=sel.value;
+    while(sel.options.length>1)sel.remove(1);
+    Object.keys(seasons).sort(function(a,b){return b-a;}).forEach(function(s){
+      var opt=document.createElement('option');
+      opt.value=s;
+      opt.textContent=s+' ('+seasons[s]+')';
+      sel.appendChild(opt);
+    });
+    sel.value=prevSeason;
+    // If previous selection no longer valid, reset
+    if(prevSeason&&!seasons[prevSeason])sel.value='';
+  }
+
+  // Update categories dropdown (if season or player changed)
+  if(changedFilter!=='cat'){
+    var cats={};
+    base.forEach(function(v){var c=v.category||'other';if(!cats[c])cats[c]=0;cats[c]++;});
+    var catSel=document.getElementById('pba-cat');
+    var prevCat=catSel.value;
+    // Remove options except "Alle"
+    while(catSel.options.length>1)catSel.remove(1);
+    // Rebuild in catLabels order
+    var catOrder=['stepladder_finals','pwba','full_telecast','televised_300','friday_five','interview','nearly_perfect','postgame_show','hall_of_fame','qualifying','player_interview','other'];
+    catOrder.forEach(function(c){
+      if(!cats[c])return;
+      var opt=document.createElement('option');
+      opt.value=c;
+      opt.textContent=(catLabels[c]||c)+' ('+cats[c]+')';
+      catSel.appendChild(opt);
+    });
+    catSel.value=prevCat;
+    if(prevCat&&!cats[prevCat])catSel.value='';
+  }
+
+  // Update players dropdown (if season or cat changed)
+  if(changedFilter!=='player'){
+    var playerCounts={};
+    base.forEach(function(v){
+      if(v.players&&v.players.length){
+        v.players.forEach(function(p){
+          if(!playerCounts[p])playerCounts[p]=0;
+          playerCounts[p]++;
+        });
+      }
+    });
+    var playerSel=document.getElementById('pba-player');
+    var prevPlayer=playerSel.value;
+    while(playerSel.options.length>1)playerSel.remove(1);
+    var sorted=Object.keys(playerCounts).sort(function(a,b){return playerCounts[b]-playerCounts[a];});
+    sorted.slice(0,100).forEach(function(p){
+      var opt=document.createElement('option');
+      opt.value=p;
+      opt.textContent=p+' ('+playerCounts[p]+')';
+      playerSel.appendChild(opt);
+    });
+    playerSel.value=prevPlayer;
+    if(prevPlayer&&!playerCounts[prevPlayer])playerSel.value='';
+  }
+
+  applyFilters();
+}
+
 // Event listeners
 var resizeTimer;
 window.addEventListener('resize',function(){
@@ -280,9 +363,9 @@ window.addEventListener('resize',function(){
 });
 
 document.getElementById('pba-search').addEventListener('input',applyFilters);
-document.getElementById('pba-season').addEventListener('change',applyFilters);
-document.getElementById('pba-cat').addEventListener('change',applyFilters);
-document.getElementById('pba-player').addEventListener('change',applyFilters);
+document.getElementById('pba-season').addEventListener('change',function(){updateDropdowns('season');});
+document.getElementById('pba-cat').addEventListener('change',function(){updateDropdowns('cat');});
+document.getElementById('pba-player').addEventListener('change',function(){updateDropdowns('player');});
 document.getElementById('pba-longonly').addEventListener('click',function(){
   longOnly=!longOnly;
   this.classList.toggle('active');
