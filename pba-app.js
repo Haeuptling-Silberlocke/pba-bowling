@@ -154,6 +154,29 @@ function finishLoad(){
     playerSel.appendChild(opt);
   });
 
+  // Build category dropdown with favorites
+  var catSel=document.getElementById('pba-cat');
+  var catLabels={'stepladder_finals':'🏆 Stepladder Finals','pwba':'👩‍🎤 PWBA','full_telecast':'📺 Komplett Übertragung','televised_300':'🎯 Televised 300','friday_five':'📅 Friday Five','interview':'🎤 Interview','nearly_perfect':'⚡ Nearly Perfect','postgame_show':'🎙️ Postgame Show','hall_of_fame':'🏅 Hall of Fame','qualifying':'📊 Qualifying','player_interview':'🎤 Spieler-Interview','other':'📎 Sonstige'};
+  var catCounts={};
+  allData.forEach(function(v){var c=v.category||'other';if(!catCounts[c])catCounts[c]=0;catCounts[c]++;});
+  var catOrder=['stepladder_finals','pwba','full_telecast','televised_300','friday_five','interview','nearly_perfect','postgame_show','hall_of_fame','qualifying','player_interview','other'];
+  // Remove existing options except "Alle"
+  while(catSel.options.length>1)catSel.remove(1);
+  catOrder.forEach(function(c){
+    if(!catCounts[c])return;
+    var opt=document.createElement('option');
+    opt.value=c;
+    opt.textContent=(catLabels[c]||c)+' ('+catCounts[c]+')';
+    catSel.appendChild(opt);
+  });
+  // Add favorites option
+  var favInit=document.createElement('option');
+  favInit.value='__favs';
+  var favInitCount=allData.filter(function(v){return pbaFavs.indexOf(v.video_id)>-1;}).length;
+  favInit.textContent='\u2b50 Favoriten ('+favInitCount+')';
+  if(favInitCount>0)favInit.style.fontWeight='bold';
+  catSel.appendChild(favInit);
+
   document.getElementById('pba-loading').style.display='none';
   applyFilters();
 }
@@ -166,7 +189,8 @@ function applyFilters(){
 
   filtered=allData.filter(function(v){
     if(season&&String(v.season)!==season)return false;
-    if(cat&&v.category!==cat)return false;
+    if(cat==='__favs'){if(pbaFavs.indexOf(v.video_id)===-1)return false;}
+    else if(cat&&v.category!==cat)return false;
     if(longOnly&&durMin(v.duration)<10)return false;
     if(player){
       if(!v.players||v.players.indexOf(player)===-1)return false;
@@ -243,7 +267,7 @@ function renderPage(){
       var badge='<span class="pba-badge '+(v.category||'other')+'">'+(catLabels[v.category]||v.category||'--')+'</span>';
       var players=v.players&&v.players.length?fmtPlayers(v.players):'';
       cardHtml+='<div class="pba-card">';
-      cardHtml+='<div class="pba-card-title">'+esc(v.video_title||'--')+'</div>';
+      cardHtml+='<div class="pba-card-title">'+esc(v.video_title||'--')+' <span data-vid="'+esc(v.video_id||'')+'" onclick="toggleFav(\''+esc(v.video_id||'')+'\')" style="cursor:pointer;font-size:0.9em">'+(isFav(v.video_id)?'\u2605':'\u2606')+'</span></div>';
       cardHtml+='<div class="pba-card-meta">';
       cardHtml+='<span class="season">'+(v.season||'--')+'</span>';
       cardHtml+=badge;
@@ -274,6 +298,7 @@ function renderPage(){
       html+='<td class="col-dur">'+(v.duration||'--')+'</td>';
       html+='<td class="col-date">'+fmtDate(v.date)+'</td>';
       html+='<td class="col-yt">'+ytLink(v.youtube_url)+'</td>';
+      html+='<td class="col-fav"><span data-vid="'+esc(v.video_id||'')+'" onclick="toggleFav(\''+esc(v.video_id||'')+'\')" style="cursor:pointer;font-size:1.2em">'+(isFav(v.video_id)?'\u2605':'\u2606')+'</span></td>';
       html+='</tr>';
     }
     tbody.innerHTML=html;
@@ -301,7 +326,8 @@ function updateDropdowns(changedFilter){
   // Build base data: apply ALL current filters (including the one that just changed)
   var base=allData.filter(function(v){
     if(curSeason&&String(v.season)!==curSeason)return false;
-    if(curCat&&v.category!==curCat)return false;
+    if(curCat==='__favs'){if(pbaFavs.indexOf(v.video_id)===-1)return false;}
+    else if(curCat&&v.category!==curCat)return false;
     if(curPlayer){
       if(!v.players||v.players.indexOf(curPlayer)===-1)return false;
     }
@@ -431,5 +457,6 @@ document.querySelectorAll('.pba-table th[data-sort]').forEach(function(th){
 });
 
 // Start
+loadFavs();
 loadData();
 })();
