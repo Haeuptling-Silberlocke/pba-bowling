@@ -278,11 +278,11 @@ function updateDropdowns(changedFilter){
   var curCat=document.getElementById('pba-cat').value;
   var curPlayer=document.getElementById('pba-player').value;
 
-  // Build base data: apply all filters EXCEPT the one that just changed
+  // Build base data: apply ALL current filters (including the one that just changed)
   var base=allData.filter(function(v){
-    if(changedFilter!=='season'&&curSeason&&String(v.season)!==curSeason)return false;
-    if(changedFilter!=='cat'&&curCat&&v.category!==curCat)return false;
-    if(changedFilter!=='player'&&curPlayer){
+    if(curSeason&&String(v.season)!==curSeason)return false;
+    if(curCat&&v.category!==curCat)return false;
+    if(curPlayer){
       if(!v.players||v.players.indexOf(curPlayer)===-1)return false;
     }
     return true;
