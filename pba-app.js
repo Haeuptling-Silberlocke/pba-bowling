@@ -345,8 +345,15 @@ function updateDropdowns(changedFilter){
       opt.textContent=(catLabels[c]||c)+' ('+cats[c]+')';
       catSel.appendChild(opt);
     });
+    // Add favorites filter option
+    var favOpt=document.createElement('option');
+    favOpt.value='__favs';
+    var favTotal=allData.filter(function(v){return pbaFavs.indexOf(v.video_id)>-1;}).length;
+    favOpt.textContent='\u2b50 Favoriten ('+favTotal+')';
+    if(favTotal>0)favOpt.style.fontWeight='bold';
+    catSel.appendChild(favOpt);
     catSel.value=prevCat;
-    if(prevCat&&!cats[prevCat])catSel.value='';
+    if(prevCat&&!cats[prevCat]&&prevCat!=='__favs')catSel.value='';
   }
 
   // Update players dropdown (if season or cat changed)
