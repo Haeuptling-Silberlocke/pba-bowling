@@ -8,6 +8,26 @@ var currentPage=0;
 var sortField='season';
 var sortAsc=false;
 var longOnly=false;
+var pbaFavs=[];
+
+// Favorites via LocalStorage
+function loadFavs(){try{pbaFavs=JSON.parse(localStorage.getItem('pba_favs')||'[]');}catch(e){pbaFavs=[];}}
+function saveFavs(){try{localStorage.setItem('pba_favs',JSON.stringify(pbaFavs));}catch(e){}}
+function toggleFav(vid){
+  var idx=pbaFavs.indexOf(vid);
+  if(idx>-1){pbaFavs.splice(idx,1);}else{pbaFavs.push(vid);}
+  saveFavs();
+  renderPage();
+  updateFavFilterCount();
+}
+function updateFavFilterCount(){
+  var opt=document.querySelector('#pba-cat option[value="__favs"]');
+  if(opt){
+    var cnt=allData.filter(function(v){return pbaFavs.indexOf(v.video_id)>-1;}).length;
+    opt.textContent='⭐ Favoriten ('+cnt+')';
+  }
+}
+function isFav(vid){return pbaFavs&&pbaFavs.indexOf(vid)>-1;}
 
 var catLabels={
   stepladder_finals:'Stepladder Finals',
@@ -310,6 +330,8 @@ function updateDropdowns(changedFilter){
   if(changedFilter!=='cat'){
     var cats={};
     base.forEach(function(v){var c=v.category||'other';if(!cats[c])cats[c]=0;cats[c]++;});
+    // Also add fav count if any
+    var favCnt=allData.filter(function(v){return pbaFavs.indexOf(v.video_id)>-1;}).length;
     var catSel=document.getElementById('pba-cat');
     var prevCat=catSel.value;
     // Remove options except "Alle"
