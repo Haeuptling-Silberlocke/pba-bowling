@@ -11,6 +11,8 @@ var longOnly=false;
 
 var catLabels={
   stepladder_finals:'Stepladder Finals',
+  pwba:'PWBA',
+  full_telecast:'Komplett \u00dcbertragung',
   televised_300:'Televised 300',
   friday_five:'Friday Five',
   interview:'Interview',
