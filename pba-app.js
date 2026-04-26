@@ -72,7 +72,7 @@ function loadData(){
   allData=[];
 
   function fetchPage(){
-    fetch(SB_URL+'/hermie_pba_videos?select=video_id,video_title,season,tournament,round,category,date,youtube_url,views,duration,players&limit=1000&offset='+offset+'&order=season.desc,date.desc',{
+    fetch(SB_URL+'/hermie_pba_videos?select=video_id,video_title,season,tournament,round,category,date,youtube_url,views,duration,players,tour&limit=1000&offset='+offset+'&order=season.desc,date.desc',{
       headers:hdrs
     }).then(function(r){return r.json();})
     .then(function(batch){
