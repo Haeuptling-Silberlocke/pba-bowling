@@ -9,9 +9,24 @@ var sortField='season';
 var sortAsc=false;
 var longOnly=false;
 var pbaFavs=[];
+var pbaSlugs={};  // player_name -> pba_slug mapping
 
 // Favorites via LocalStorage
 function loadFavs(){try{pbaFavs=JSON.parse(localStorage.getItem('pba_favs')||'[]');}catch(e){pbaFavs=[];}}
+function loadSlugs(){
+  var hdrs={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  fetch(SB_URL+'/hermie_pba_player_slugs?select=player_name,pba_slug',{headers:hdrs})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(Array.isArray(data)){
+      for(var i=0;i<data.length;i++){
+        pbaSlugs[data[i].player_name]=data[i].pba_slug;
+      }
+    }
+    console.log('Loaded '+Object.keys(pbaSlugs).length+' PBA slugs');
+  })
+  .catch(function(err){console.log('Slug load error: '+err.message);});
+}
 function saveFavs(){try{localStorage.setItem('pba_favs',JSON.stringify(pbaFavs));}catch(e){}}
 window.toggleFav=function(vid){
   var idx=pbaFavs.indexOf(vid);
@@ -72,7 +87,13 @@ function fmtPlayers(arr){
   if(!arr||!arr.length)return'<span style="color:#484f58">—</span>';
   var html='';
   for(var i=0;i<arr.length;i++){
-    html+='<span class=\"pba-player\" style=\"display:inline-block;background:rgba(230,126,34,0.1);color:#e67e22;padding:2px 8px;border:1px solid rgba(230,126,34,0.25);border-radius:4px;font-size:0.80em;margin:2px 4px;white-space:nowrap;line-height:1.4\">'+esc(arr[i])+'</span>';
+    var name=arr[i];
+    var slug=pbaSlugs[name];
+    if(slug){
+      html+='<a href="https://www.pba.com/players/'+encodeURIComponent(slug)+'" target="_blank" rel="noopener" class="pba-player" style="display:inline-block;background:rgba(230,126,34,0.1);color:#e67e22;padding:2px 8px;border:1px solid rgba(230,126,34,0.25);border-radius:4px;font-size:0.80em;margin:2px 4px;white-space:nowrap;line-height:1.4;text-decoration:none;cursor:pointer" title="PBA-Profil: '+esc(name)+'" onmouseover="this.style.background=\'rgba(230,126,34,0.25)\'" onmouseout="this.style.background=\'rgba(230,126,34,0.1)\'">'+esc(name)+'</a>';
+    }else{
+      html+='<span class="pba-player" style="display:inline-block;background:rgba(230,126,34,0.1);color:#e67e22;padding:2px 8px;border:1px solid rgba(230,126,34,0.25);border-radius:4px;font-size:0.80em;margin:2px 4px;white-space:nowrap;line-height:1.4">'+esc(name)+'</span>';
+    }
   }
   return html;
 }
@@ -458,5 +479,6 @@ document.querySelectorAll('.pba-table th[data-sort]').forEach(function(th){
 
 // Start
 loadFavs();
+loadSlugs();
 loadData();
 })();
