@@ -63,7 +63,7 @@ function buildPlayerStats(){
   });
   console.log('Built stats for '+Object.keys(playerStats).length+' players');
 }
-function showPlayerTooltip(name,el){
+window.showPlayerTooltip=function(name,el){
   if(tooltipTimer){clearTimeout(tooltipTimer);tooltipTimer=null;}
   var st=playerStats[name];
   if(!st)return;
@@ -110,7 +110,7 @@ function showPlayerTooltip(name,el){
   // Fade in
   setTimeout(function(){tooltipEl.style.opacity='1';},10);
 }
-function hidePlayerTooltip(){
+window.hidePlayerTooltip=function(){
   tooltipEl.style.opacity='0';
   tooltipTimer=setTimeout(function(){tooltipEl.style.display='none';},150);
 }
