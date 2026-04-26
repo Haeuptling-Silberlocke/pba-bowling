@@ -97,11 +97,11 @@ function finishLoad(){
   document.getElementById('stepladder').textContent=sl.toLocaleString('de-DE');
   document.getElementById('t300').textContent=t3.toLocaleString('de-DE');
   document.getElementById('f5').textContent=f5.toLocaleString('de-DE');
-  // PWBA + Full Telecast stats
+  // PWBA + Interview stats
   var pwbaEl=document.getElementById('pwba-stat');
-  var ftEl=document.getElementById('ft-stat');
+  var intEl=document.getElementById('int-stat');
   if(pwbaEl){var pwba=allData.filter(function(v){return v.category==='pwba'}).length;pwbaEl.textContent=pwba.toLocaleString('de-DE');}
-  if(ftEl){var ft=allData.filter(function(v){return v.category==='full_telecast'}).length;ftEl.textContent=ft.toLocaleString('de-DE');}
+  if(intEl){var interview=allData.filter(function(v){return v.category==='interview'}).length;intEl.textContent=interview.toLocaleString('de-DE');}
 
   // Build season dropdown
   var seasons={};
