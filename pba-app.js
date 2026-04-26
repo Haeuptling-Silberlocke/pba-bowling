@@ -10,6 +10,7 @@ var sortAsc=false;
 var longOnly=false;
 var pbaFavs=[];
 var pbaSlugs={};  // player_name -> pba_slug mapping
+var playerStats={}; // aggregated stats per player for tooltips
 
 // Favorites via LocalStorage
 function loadFavs(){try{pbaFavs=JSON.parse(localStorage.getItem('pba_favs')||'[]');}catch(e){pbaFavs=[];}}
@@ -27,6 +28,93 @@ function loadSlugs(){
   })
   .catch(function(err){console.log('Slug load error: '+err.message);});
 }
+// Player Tooltip System
+var tooltipEl=null;
+var tooltipTimer=null;
+function initTooltip(){
+  tooltipEl=document.createElement('div');
+  tooltipEl.id='pba-tooltip';
+  tooltipEl.style.cssText='display:none;position:fixed;z-index:99999;background:#1c2128;border:1px solid rgba(230,126,34,0.4);border-radius:10px;padding:14px 16px;min-width:220px;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#e6edf3;pointer-events:none;opacity:0;transition:opacity 0.15s ease';
+  document.body.appendChild(tooltipEl);
+  // Close on outside click (mobile)
+  document.addEventListener('click',function(e){
+    if(tooltipEl.style.display==='block'&&!tooltipEl.contains(e.target)&&!e.target.classList.contains('pba-player')){
+      hidePlayerTooltip();
+    }
+  });
+}
+function buildPlayerStats(){
+  playerStats={};
+  var catShort={stepladder_finals:'Stepladder',pwba:'PWBA',full_telecast:'Telecast',televised_300:'300 Game',friday_five:'Friday 5',interview:'Interview',nearly_perfect:'Nearly Perf',postgame_show:'Postgame',hall_of_fame:'HOF',qualifying:'Qualifying',player_interview:'Player Int',other:'Sonstige'};
+  allData.forEach(function(v){
+    if(!v.players||!v.players.length)return;
+    v.players.forEach(function(p){
+      if(!playerStats[p])playerStats[p]={count:0,cats:{},seasons:{},views:0};
+      var s=playerStats[p];
+      s.count++;
+      var c=v.category||'other';
+      if(!s.cats[c])s.cats[c]=0;
+      s.cats[c]++;
+      var yr=String(v.season);
+      if(!s.seasons[yr])s.seasons[yr]=0;
+      s.seasons[yr]++;
+      s.views+=(v.views||0);
+    });
+  });
+  console.log('Built stats for '+Object.keys(playerStats).length+' players');
+}
+function showPlayerTooltip(name,el){
+  if(tooltipTimer){clearTimeout(tooltipTimer);tooltipTimer=null;}
+  var st=playerStats[name];
+  if(!st)return;
+  var slug=pbaSlugs[name];
+  var catNames={stepladder_finals:'Stepladder',pwba:'PWBA',full_telecast:'Komplett',televised_300:'Televised 300',friday_five:'Friday Five',interview:'Interview',nearly_perfect:'Nearly Perfect',postgame_show:'Postgame',hall_of_fame:'Hall of Fame',qualifying:'Qualifying',player_interview:'Spieler-Int',other:'Sonstige'};
+  // Build category breakdown
+  var catHtml='';
+  var sortedCats=Object.keys(st.cats).sort(function(a,b){return st.cats[b]-st.cats[a];});
+  for(var i=0;i<sortedCats.length&&i<5;i++){
+    var cn=catNames[sortedCats[i]]||sortedCats[i];
+    catHtml+='<span style="display:inline-block;background:rgba(230,126,34,0.15);color:#ffa657;padding:1px 6px;border-radius:3px;font-size:0.78em;margin:2px 2px">'+cn+' ('+st.cats[sortedCats[i]]+')</span>';
+  }
+  // Build seasons
+  var seasonKeys=Object.keys(st.seasons).sort(function(a,b){return b-a;});
+  var seasonStr=seasonKeys.length>4?seasonKeys.slice(0,4).join(', ')+', ...':seasonKeys.join(', ');
+  var html='';
+  html+='<div style="font-size:1.1em;font-weight:700;color:#ffa657;margin-bottom:8px">🎳 '+esc(name)+'</div>';
+  html+='<div style="margin-bottom:6px">';
+  html+='<span style="color:#8b949e;font-size:0.85em">Videos:</span> <strong>'+st.count+'</strong>';
+  html+='&nbsp;&nbsp;<span style="color:#8b949e;font-size:0.85em">Aufrufe:</span> <strong>'+fmtNum(st.views)+'</strong>';
+  html+='</div>';
+  if(catHtml)html+='<div style="margin-bottom:6px">'+catHtml+'</div>';
+  html+='<div style="color:#8b949e;font-size:0.82em;margin-bottom:'+(slug?'8':'0')+'px">📅 Saisons: '+seasonStr+'</div>';
+  if(slug)html+='<a href="https://www.pba.com/players/'+encodeURIComponent(slug)+'" target="_blank" rel="noopener" style="display:inline-block;background:#e67e22;color:#fff;padding:4px 12px;border-radius:5px;text-decoration:none;font-size:0.85em;font-weight:600;pointer-events:auto" >🔗 PBA-Profil</a>';
+  tooltipEl.innerHTML=html;
+  tooltipEl.style.display='block';
+  // Position near the element
+  var rect=el.getBoundingClientRect();
+  var tw=tooltipEl.offsetWidth;
+  var th=tooltipEl.offsetHeight;
+  var left=rect.left+rect.width/2-tw/2;
+  var top=rect.bottom+10;
+  // Keep in viewport
+  if(left<10)left=10;
+  if(left+tw>window.innerWidth-10)left=window.innerWidth-tw-10;
+  if(top+th>window.innerHeight-10){
+    top=rect.top-th-10;
+    tooltipEl.style.boxShadow='0 -4px 16px rgba(0,0,0,0.4)';
+  }else{
+    tooltipEl.style.boxShadow='0 8px 32px rgba(0,0,0,0.5)';
+  }
+  tooltipEl.style.left=left+'px';
+  tooltipEl.style.top=top+'px';
+  // Fade in
+  setTimeout(function(){tooltipEl.style.opacity='1';},10);
+}
+function hidePlayerTooltip(){
+  tooltipEl.style.opacity='0';
+  tooltipTimer=setTimeout(function(){tooltipEl.style.display='none';},150);
+}
+
 function saveFavs(){try{localStorage.setItem('pba_favs',JSON.stringify(pbaFavs));}catch(e){}}
 window.toggleFav=function(vid){
   var idx=pbaFavs.indexOf(vid);
@@ -89,10 +177,11 @@ function fmtPlayers(arr){
   for(var i=0;i<arr.length;i++){
     var name=arr[i];
     var slug=pbaSlugs[name];
+    var tipAttrs='data-player="'+esc(name)+'" onmouseenter="var _t=this;clearTimeout(this._ht);this._ht=setTimeout(function(){showPlayerTooltip(_t.getAttribute(\'data-player\'),_t)},200)" onmouseleave="clearTimeout(this._ht);hidePlayerTooltip()" onclick="if(window.innerWidth<769){showPlayerTooltip(this.getAttribute(\'data-player\'),this);event.preventDefault();}"';
     if(slug){
-      html+='<a href="https://www.pba.com/players/'+encodeURIComponent(slug)+'" target="_blank" rel="noopener" class="pba-player" style="display:inline-block;background:rgba(230,126,34,0.1);color:#e67e22;padding:2px 8px;border:1px solid rgba(230,126,34,0.25);border-radius:4px;font-size:0.80em;margin:2px 4px;white-space:nowrap;line-height:1.4;text-decoration:none;cursor:pointer" title="PBA-Profil: '+esc(name)+'" onmouseover="this.style.background=\'rgba(230,126,34,0.25)\'" onmouseout="this.style.background=\'rgba(230,126,34,0.1)\'">'+esc(name)+'</a>';
+      html+='<a href="https://www.pba.com/players/'+encodeURIComponent(slug)+'" target="_blank" rel="noopener" class="pba-player" style="display:inline-block;background:rgba(230,126,34,0.1);color:#e67e22;padding:2px 8px;border:1px solid rgba(230,126,34,0.25);border-radius:4px;font-size:0.80em;margin:2px 4px;white-space:nowrap;line-height:1.4;text-decoration:none;cursor:pointer" title="PBA-Profil: '+esc(name)+'" onmouseover="this.style.background=\'rgba(230,126,34,0.25)\'" onmouseout="this.style.background=\'rgba(230,126,34,0.1)\'" '+tipAttrs+'>'+esc(name)+'</a>';
     }else{
-      html+='<span class="pba-player" style="display:inline-block;background:rgba(230,126,34,0.1);color:#e67e22;padding:2px 8px;border:1px solid rgba(230,126,34,0.25);border-radius:4px;font-size:0.80em;margin:2px 4px;white-space:nowrap;line-height:1.4">'+esc(name)+'</span>';
+      html+='<span class="pba-player" style="display:inline-block;background:rgba(230,126,34,0.1);color:#e67e22;padding:2px 8px;border:1px solid rgba(230,126,34,0.25);border-radius:4px;font-size:0.80em;margin:2px 4px;white-space:nowrap;line-height:1.4;cursor:help" '+tipAttrs+'>'+esc(name)+'</span>';
     }
   }
   return html;
@@ -199,6 +288,7 @@ function finishLoad(){
   catSel.appendChild(favInit);
 
   document.getElementById('pba-loading').style.display='none';
+  buildPlayerStats();
   applyFilters();
 }
 
@@ -480,5 +570,6 @@ document.querySelectorAll('.pba-table th[data-sort]').forEach(function(th){
 // Start
 loadFavs();
 loadSlugs();
+initTooltip();
 loadData();
 })();
