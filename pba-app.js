@@ -52,7 +52,7 @@ function fmtPlayers(arr){
   if(!arr||!arr.length)return'<span style="color:#484f58">—</span>';
   var html='';
   for(var i=0;i<arr.length;i++){
-    html+='<span class="pba-player">'+esc(arr[i])+'</span>';
+    html+='<span class=\"pba-player\" style=\"display:inline-block;background:rgba(230,126,34,0.1);color:#e67e22;padding:2px 8px;border:1px solid rgba(230,126,34,0.25);border-radius:4px;font-size:0.80em;margin:2px 4px;white-space:nowrap;line-height:1.4\">'+esc(arr[i])+'</span>';
   }
   return html;
 }
