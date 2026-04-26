@@ -13,7 +13,7 @@ var pbaFavs=[];
 // Favorites via LocalStorage
 function loadFavs(){try{pbaFavs=JSON.parse(localStorage.getItem('pba_favs')||'[]');}catch(e){pbaFavs=[];}}
 function saveFavs(){try{localStorage.setItem('pba_favs',JSON.stringify(pbaFavs));}catch(e){}}
-function toggleFav(vid){
+window.toggleFav=function(vid){
   var idx=pbaFavs.indexOf(vid);
   if(idx>-1){pbaFavs.splice(idx,1);}else{pbaFavs.push(vid);}
   saveFavs();
