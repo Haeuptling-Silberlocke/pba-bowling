@@ -127,7 +127,7 @@ function finishLoad(){
   });
   var playerSel=document.getElementById('pba-player');
   var sorted=Object.keys(playerCounts).sort(function(a,b){return playerCounts[b]-playerCounts[a];});
-  sorted.slice(0,30).forEach(function(p){
+  sorted.slice(0,100).forEach(function(p){
     var opt=document.createElement('option');
     opt.value=p;
     opt.textContent=p+' ('+playerCounts[p]+')';
