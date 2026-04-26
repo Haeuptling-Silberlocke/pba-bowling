@@ -1,1 +1,304 @@
-(function(){var SB_URL='https://nmsdfuxgsedcfkpgllny.supabase.co/rest/v1';var SB_KEY='sb_publishable_pT6dL1pvFc4LyhKbstRj4w_bmXM24lL';var PAGE_SIZE=50;var allData=[];var filtered=[];var currentPage=0;var sortField='season';var sortAsc=false;var longOnly=false;var catLabels={stepladder_finals:'Stepladder Finals',televised_300:'Televised 300',friday_five:'Friday Five',interview:'Interview',nearly_perfect:'Nearly Perfect',postgame_show:'Postgame Show',hall_of_fame:'Hall of Fame',qualifying:'Qualifying',player_interview:'Player Interview',other:'Sonstige'};var catOrder=['stepladder_finals','televised_300','friday_five','nearly_perfect','postgame_show','interview','player_interview','hall_of_fame','qualifying','other'];function isMobile(){return window.innerWidth<768;}function fmtNum(n){return n?n.toLocaleString('de-DE'):'--';}function fmtDate(d){if(!d)return'--';var p=d.split('-');return p[2]+'.'+p[1]+'.'+p[0];}function parseDur(d){if(!d)return 0;var p=d.split(':');try{if(p.length===3)return parseInt(p[0])*3600+parseInt(p[1])*60+parseInt(p[2]);if(p.length===2)return parseInt(p[0])*60+parseInt(p[1]);}catch(e){}return 0;}function durMin(d){var s=parseDur(d);return s?Math.round(s/60):0;}function fmtPlayers(arr){if(!arr||!arr.length)return'';var html='';for(var i=0;i<arr.length;i++){html+='<span class="pba-player">'+arr[i].replace(/</g,'&lt;')+'</span>';}return html;}function ytLink(url){if(!url)return'--';return'<a class="pba-yt" href="'+url+'" target="_blank" rel="noopener" title="Auf YouTube ansehen">\uD83C\uDF9E</a>';}function loadData(){var el=document.getElementById('pba-loading');el.style.display='block';document.getElementById('pba-table').style.display='none';var cards=document.getElementById('pba-cards');if(cards)cards.style.display='none';var hdrs={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};var offset=0;allData=[];function fetchPage(){fetch(SB_URL+'/hermie_pba_videos?select=video_id,video_title,season,tournament,round,category,date,youtube_url,views,duration,players&limit=1000&offset='+offset+'&order=season.desc,date.desc',{headers:hdrs}).then(function(r){return r.json();}).then(function(batch){if(!Array.isArray(batch)||batch.length===0){finishLoad();return;}allData=allData.concat(batch);if(batch.length<1000){finishLoad();}else{offset+=1000;fetchPage();}}).catch(function(err){el.innerHTML='X Fehler: '+err.message;});}fetchPage();}function finishLoad(){document.getElementById('stat-total').textContent=allData.length;var sl=allData.filter(function(v){return v.category==='stepladder_finals'}).length;var t3=allData.filter(function(v){return v.category==='televised_300'}).length;var f5=allData.filter(function(v){return v.category==='friday_five'}).length;document.getElementById('stepladder').textContent=sl;document.getElementById('t300').textContent=t3;document.getElementById('f5').textContent=f5;var seasons={};allData.forEach(function(v){var s=String(v.season);if(!seasons[s])seasons[s]=0;seasons[s]++;});var sel=document.getElementById('pba-season');var keys=Object.keys(seasons).sort(function(a,b){return b-a;});keys.forEach(function(s){var opt=document.createElement('option');opt.value=s;opt.textContent=s+' ('+seasons[s]+')';sel.appendChild(opt);});document.getElementById('pba-loading').style.display='none';applyFilters();}function applyFilters(){var search=document.getElementById('pba-search').value.toLowerCase().trim();var season=document.getElementById('pba-season').value;var cat=document.getElementById('pba-cat').value;var player=document.getElementById('pba-player').value;filtered=allData.filter(function(v){if(season){if(String(v.season)!==season)return false;}if(cat){if(v.category!==cat)return false;}if(longOnly){if(durMin(v.duration)<10)return false;}if(player){if(!v.players||v.players.indexOf(player)===-1)return false;}if(search){var txt=(v.video_title||'').toLowerCase()+' '+(v.tournament||'').toLowerCase()+' '+(v.players?v.players.join(' '):'').toLowerCase()+' '+String(v.season);if(txt.indexOf(search)===-1)return false;}return true;});filtered.sort(function(a,b){var va,vb;if(sortField==='season'){va=a.season;vb=b.season;}else if(sortField==='views'){va=a.views||0;vb=b.views||0;}else if(sortField==='duration'){va=parseDur(a.duration);vb=parseDur(b.duration);}else{va=(a[sortField]||'').toLowerCase();vb=(b[sortField]||'').toLowerCase();}if(sortField==='season'||sortField==='views'||sortField==='duration'){return sortAsc?(va-vb):(vb-va);}return sortAsc?va.localeCompare(vb):vb.localeCompare(va);});currentPage=0;renderPage();}function renderPage(){var mobile=isMobile();var tbody=document.getElementById('pba-tbody');var cardsEl=document.getElementById('pba-cards');var countEl=document.getElementById('pba-count');var tableEl=document.getElementById('pba-table');countEl.textContent=filtered.length+' Videos'+(filtered.length!==allData.length?' (gefiltert aus '+allData.length+')':'');if(filtered.length===0){tbody.innerHTML='<tr><td colspan="8" class="pba-empty">Keine Videos gefunden</td></tr>';tableEl.style.display='';if(cardsEl)cardsEl.style.display='none';document.getElementById('pba-paging').style.display='none';return;}var start=currentPage*PAGE_SIZE;var end=Math.min(start+PAGE_SIZE,filtered.length);var page=filtered.slice(start,end);if(mobile){tableEl.style.display='none';if(!cardsEl){cardsEl=document.createElement('div');cardsEl.id='pba-cards';cardsEl.className='pba-cards';tableEl.parentNode.insertBefore(cardsEl,tableEl.nextSibling);}cardsEl.style.display='';cardsEl.innerHTML='';var cardHtml='';for(var i=0;i<page.length;i++){var v=page[i];var badge='<span class="pba-badge '+(v.category||'other')+'">'+(catLabels[v.category]||v.category||'--')+'</span>';var players=v.players&&v.players.length?fmtPlayers(v.players):'';cardHtml+='<div class="pba-card">';cardHtml+='<div class="pba-card-title">'+(v.video_title||'--')+'</div>';cardHtml+='<div class="pba-card-meta">';cardHtml+='<span class="pba-card-season">'+(v.season||'--')+'</span>';cardHtml+=badge;if(players)cardHtml+='<div class="pba-card-players">'+players+'</div>';cardHtml+='</div>';cardHtml+='<div class="pba-card-bottom">';cardHtml+='<span>'+(v.duration||'--')+'</span>';cardHtml+='<span>'+fmtNum(v.views)+' Views</span>';cardHtml+='<span>'+fmtDate(v.date)+'</span>';cardHtml+='<span>'+ytLink(v.youtube_url)+'</span>';cardHtml+='</div>';cardHtml+='</div>';}cardsEl.innerHTML=cardHtml;}else{tableEl.style.display='';if(cardsEl)cardsEl.style.display='none';var html='';for(var i=0;i<page.length;i++){var v=page[i];var badge='<span class="pba-badge '+(v.category||'other')+'">'+(catLabels[v.category]||v.category||'--')+'</span>';html+='<tr><td>'+(v.season||'--')+'</td><td class="title" title="'+(v.video_title||'').replace(/"/g,'&quot;')+'">'+(v.video_title||'--')+'</td><td>'+badge+'</td><td class="players">'+fmtPlayers(v.players)+'</td><td class="views">'+fmtNum(v.views)+'</td><td class="dur">'+(v.duration||'--')+'</td><td>'+fmtDate(v.date)+'</td><td>'+ytLink(v.youtube_url)+'</td></tr>';}tbody.innerHTML=html;}var totalPages=Math.ceil(filtered.length/PAGE_SIZE);var pagingEl=document.getElementById('pba-paging');if(totalPages>1){pagingEl.style.display='flex';document.getElementById('pba-prev').disabled=(currentPage===0);document.getElementById('pba-next').disabled=(currentPage>=totalPages-1);document.getElementById('pba-page-info').textContent='Seite '+(currentPage+1)+' / '+totalPages+' ('+filtered.length+' Videos)';}else{pagingEl.style.display='none';}}var resizeTimer;window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){renderPage();},200);});document.getElementById('pba-search').addEventListener('input',applyFilters);document.getElementById('pba-season').addEventListener('change',applyFilters);document.getElementById('pba-cat').addEventListener('change',applyFilters);document.getElementById('pba-player').addEventListener('change',applyFilters);document.getElementById('pba-longonly').addEventListener('click',function(){longOnly=!longOnly;this.classList.toggle('active');applyFilters();});document.getElementById('pba-prev').addEventListener('click',function(){if(currentPage>0){currentPage--;renderPage();}});document.getElementById('pba-next').addEventListener('click',function(){var totalPages=Math.ceil(filtered.length/PAGE_SIZE);if(currentPage<totalPages-1){currentPage++;renderPage();}});document.querySelectorAll('.pba-table th[data-sort]').forEach(function(th){th.addEventListener('click',function(){var field=this.getAttribute('data-sort');if(sortField===field){sortAsc=!sortAsc;}else{sortField=field;sortAsc=false;}applyFilters();});});loadData();})();
+(function(){
+var SB_URL='https://nmsdfuxgsedcfkpgllny.supabase.co/rest/v1';
+var SB_KEY='sb_publishable_pT6dL1pvFc4LyhKbstRj4w_bmXM24lL';
+var PAGE_SIZE=50;
+var allData=[];
+var filtered=[];
+var currentPage=0;
+var sortField='season';
+var sortAsc=false;
+var longOnly=false;
+
+var catLabels={
+  stepladder_finals:'Stepladder Finals',
+  televised_300:'Televised 300',
+  friday_five:'Friday Five',
+  interview:'Interview',
+  nearly_perfect:'Nearly Perfect',
+  postgame_show:'Postgame Show',
+  hall_of_fame:'Hall of Fame',
+  qualifying:'Qualifying',
+  player_interview:'Player Interview',
+  other:'Sonstige'
+};
+
+function esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';}
+
+function isMobile(){return window.innerWidth<769;}
+
+function fmtNum(n){return n?n.toLocaleString('de-DE'):'--';}
+
+function fmtDate(d){
+  if(!d)return'--';
+  var p=d.split('-');
+  return p[2]+'.'+p[1]+'.'+p[0];
+}
+
+function parseDur(d){
+  if(!d)return 0;
+  var p=d.split(':');
+  try{
+    if(p.length===3)return parseInt(p[0])*3600+parseInt(p[1])*60+parseInt(p[2]);
+    if(p.length===2)return parseInt(p[0])*60+parseInt(p[1]);
+  }catch(e){}
+  return 0;
+}
+
+function durMin(d){var s=parseDur(d);return s?Math.round(s/60):0;}
+
+function fmtPlayers(arr){
+  if(!arr||!arr.length)return'<span style="color:#484f58">—</span>';
+  var html='';
+  for(var i=0;i<arr.length;i++){
+    html+='<span class="pba-player">'+esc(arr[i])+'</span>';
+  }
+  return html;
+}
+
+function ytLink(url){
+  if(!url)return'—';
+  return'<a class="pba-yt" href="'+esc(url)+'" target="_blank" rel="noopener" title="Auf YouTube ansehen">▶</a>';
+}
+
+function loadData(){
+  var el=document.getElementById('pba-loading');
+  el.style.display='block';
+  document.getElementById('pba-table').style.display='none';
+  var cards=document.getElementById('pba-cards');
+  if(cards)cards.style.display='none';
+
+  var hdrs={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  var offset=0;
+  allData=[];
+
+  function fetchPage(){
+    fetch(SB_URL+'/hermie_pba_videos?select=video_id,video_title,season,tournament,round,category,date,youtube_url,views,duration,players&limit=1000&offset='+offset+'&order=season.desc,date.desc',{
+      headers:hdrs
+    }).then(function(r){return r.json();})
+    .then(function(batch){
+      if(!Array.isArray(batch)||batch.length===0){finishLoad();return;}
+      allData=allData.concat(batch);
+      if(batch.length<1000){finishLoad();}
+      else{offset+=1000;fetchPage();}
+    }).catch(function(err){
+      el.innerHTML='❌ Fehler: '+esc(err.message);
+    });
+  }
+  fetchPage();
+}
+
+function finishLoad(){
+  document.getElementById('stat-total').textContent=allData.length.toLocaleString('de-DE');
+  var sl=allData.filter(function(v){return v.category==='stepladder_finals'}).length;
+  var t3=allData.filter(function(v){return v.category==='televised_300'}).length;
+  var f5=allData.filter(function(v){return v.category==='friday_five'}).length;
+  document.getElementById('stepladder').textContent=sl.toLocaleString('de-DE');
+  document.getElementById('t300').textContent=t3.toLocaleString('de-DE');
+  document.getElementById('f5').textContent=f5.toLocaleString('de-DE');
+
+  // Build season dropdown
+  var seasons={};
+  allData.forEach(function(v){var s=String(v.season);if(!seasons[s])seasons[s]=0;seasons[s]++;});
+  var sel=document.getElementById('pba-season');
+  var keys=Object.keys(seasons).sort(function(a,b){return b-a;});
+  keys.forEach(function(s){
+    var opt=document.createElement('option');
+    opt.value=s;
+    opt.textContent=s+' ('+seasons[s]+')';
+    sel.appendChild(opt);
+  });
+
+  // Build player dropdown
+  var playerCounts={};
+  allData.forEach(function(v){
+    if(v.players&&v.players.length){
+      v.players.forEach(function(p){
+        if(!playerCounts[p])playerCounts[p]=0;
+        playerCounts[p]++;
+      });
+    }
+  });
+  var playerSel=document.getElementById('pba-player');
+  var sorted=Object.keys(playerCounts).sort(function(a,b){return playerCounts[b]-playerCounts[a];});
+  sorted.slice(0,50).forEach(function(p){
+    var opt=document.createElement('option');
+    opt.value=p;
+    opt.textContent=p+' ('+playerCounts[p]+')';
+    playerSel.appendChild(opt);
+  });
+
+  document.getElementById('pba-loading').style.display='none';
+  applyFilters();
+}
+
+function applyFilters(){
+  var search=document.getElementById('pba-search').value.toLowerCase().trim();
+  var season=document.getElementById('pba-season').value;
+  var cat=document.getElementById('pba-cat').value;
+  var player=document.getElementById('pba-player').value;
+
+  filtered=allData.filter(function(v){
+    if(season&&String(v.season)!==season)return false;
+    if(cat&&v.category!==cat)return false;
+    if(longOnly&&durMin(v.duration)<10)return false;
+    if(player){
+      if(!v.players||v.players.indexOf(player)===-1)return false;
+    }
+    if(search){
+      var txt=(v.video_title||'').toLowerCase()+' '+(v.tournament||'').toLowerCase()+' '+(v.players?v.players.join(' '):'').toLowerCase()+' '+String(v.season);
+      if(txt.indexOf(search)===-1)return false;
+    }
+    return true;
+  });
+
+  // Sort
+  filtered.sort(function(a,b){
+    var va,vb;
+    if(sortField==='season'){va=a.season;vb=b.season;}
+    else if(sortField==='views'){va=a.views||0;vb=b.views||0;}
+    else if(sortField==='duration'){va=parseDur(a.duration);vb=parseDur(b.duration);}
+    else if(sortField==='date'){va=a.date||'';vb=b.date||'';}
+    else{va=(a[sortField]||'').toLowerCase();vb=(b[sortField]||'').toLowerCase();}
+    if(sortField==='season'||sortField==='views'||sortField==='duration'){
+      return sortAsc?(va-vb):(vb-va);
+    }
+    return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
+  });
+
+  // Update sort indicators
+  document.querySelectorAll('.pba-table th[data-sort]').forEach(function(th){
+    var f=th.getAttribute('data-sort');
+    th.classList.toggle('sort-active',f===sortField);
+    var arrow=th.querySelector('.sort-arrow');
+    if(arrow){
+      if(f===sortField)arrow.textContent=sortAsc?'↑':'↓';
+      else arrow.textContent='↕';
+    }
+  });
+
+  currentPage=0;
+  renderPage();
+}
+
+function renderPage(){
+  var mobile=isMobile();
+  var tbody=document.getElementById('pba-tbody');
+  var cardsEl=document.getElementById('pba-cards');
+  var countEl=document.getElementById('pba-count');
+  var tableEl=document.getElementById('pba-table');
+
+  countEl.textContent=filtered.length.toLocaleString('de-DE')+' Videos'+(filtered.length!==allData.length?' (gefiltert aus '+allData.length.toLocaleString('de-DE')+')':'');
+
+  if(filtered.length===0){
+    tbody.innerHTML='<tr><td colspan="8" class="pba-empty">Keine Videos gefunden</td></tr>';
+    tableEl.style.display='';
+    if(cardsEl)cardsEl.style.display='none';
+    document.getElementById('pba-paging').style.display='none';
+    return;
+  }
+
+  var start=currentPage*PAGE_SIZE;
+  var end=Math.min(start+PAGE_SIZE,filtered.length);
+  var page=filtered.slice(start,end);
+
+  if(mobile){
+    tableEl.style.display='none';
+    if(!cardsEl){
+      cardsEl=document.createElement('div');
+      cardsEl.id='pba-cards';
+      cardsEl.className='pba-cards';
+      tableEl.parentNode.parentNode.insertBefore(cardsEl,tableEl.parentNode.nextSibling);
+    }
+    cardsEl.style.display='';
+    var cardHtml='';
+    for(var i=0;i<page.length;i++){
+      var v=page[i];
+      var badge='<span class="pba-badge '+(v.category||'other')+'">'+(catLabels[v.category]||v.category||'--')+'</span>';
+      var players=v.players&&v.players.length?fmtPlayers(v.players):'';
+      cardHtml+='<div class="pba-card">';
+      cardHtml+='<div class="pba-card-title">'+esc(v.video_title||'--')+'</div>';
+      cardHtml+='<div class="pba-card-meta">';
+      cardHtml+='<span class="season">'+(v.season||'--')+'</span>';
+      cardHtml+=badge;
+      cardHtml+='</div>';
+      if(players)cardHtml+='<div class="pba-card-players">'+players+'</div>';
+      cardHtml+='<div class="pba-card-bottom">';
+      cardHtml+='<span>⏱ '+(v.duration||'--')+'</span>';
+      cardHtml+='<span>👁 '+fmtNum(v.views)+'</span>';
+      cardHtml+='<span>'+fmtDate(v.date)+'</span>';
+      cardHtml+='<span>'+ytLink(v.youtube_url)+'</span>';
+      cardHtml+='</div></div>';
+    }
+    cardsEl.innerHTML=cardHtml;
+  }else{
+    tableEl.style.display='';
+    if(cardsEl)cardsEl.style.display='none';
+    var html='';
+    for(var i=0;i<page.length;i++){
+      var v=page[i];
+      var badge='<span class="pba-badge '+(v.category||'other')+'">'+(catLabels[v.category]||v.category||'--')+'</span>';
+      var playersHtml=fmtPlayers(v.players);
+      html+='<tr>';
+      html+='<td class="col-season">'+(v.season||'--')+'</td>';
+      html+='<td class="col-title" title="'+esc(v.video_title||'')+'">'+esc(v.video_title||'--')+'</td>';
+      html+='<td class="col-cat">'+badge+'</td>';
+      html+='<td class="col-players">'+playersHtml+'</td>';
+      html+='<td class="col-views">'+fmtNum(v.views)+'</td>';
+      html+='<td class="col-dur">'+(v.duration||'--')+'</td>';
+      html+='<td class="col-date">'+fmtDate(v.date)+'</td>';
+      html+='<td class="col-yt">'+ytLink(v.youtube_url)+'</td>';
+      html+='</tr>';
+    }
+    tbody.innerHTML=html;
+  }
+
+  // Pagination
+  var totalPages=Math.ceil(filtered.length/PAGE_SIZE);
+  var pagingEl=document.getElementById('pba-paging');
+  if(totalPages>1){
+    pagingEl.style.display='flex';
+    document.getElementById('pba-prev').disabled=(currentPage===0);
+    document.getElementById('pba-next').disabled=(currentPage>=totalPages-1);
+    document.getElementById('pba-page-info').textContent='Seite '+(currentPage+1)+' / '+totalPages+' ('+filtered.length.toLocaleString('de-DE')+' Videos)';
+  }else{
+    pagingEl.style.display='none';
+  }
+}
+
+// Event listeners
+var resizeTimer;
+window.addEventListener('resize',function(){
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(function(){renderPage();},200);
+});
+
+document.getElementById('pba-search').addEventListener('input',applyFilters);
+document.getElementById('pba-season').addEventListener('change',applyFilters);
+document.getElementById('pba-cat').addEventListener('change',applyFilters);
+document.getElementById('pba-player').addEventListener('change',applyFilters);
+document.getElementById('pba-longonly').addEventListener('click',function(){
+  longOnly=!longOnly;
+  this.classList.toggle('active');
+  applyFilters();
+});
+
+document.getElementById('pba-prev').addEventListener('click',function(){
+  if(currentPage>0){currentPage--;renderPage();}
+});
+document.getElementById('pba-next').addEventListener('click',function(){
+  var totalPages=Math.ceil(filtered.length/PAGE_SIZE);
+  if(currentPage<totalPages-1){currentPage++;renderPage();}
+});
+
+document.querySelectorAll('.pba-table th[data-sort]').forEach(function(th){
+  th.addEventListener('click',function(){
+    var field=this.getAttribute('data-sort');
+    if(sortField===field){sortAsc=!sortAsc;}
+    else{sortField=field;sortAsc=false;}
+    applyFilters();
+  });
+});
+
+// Start
+loadData();
+})();
