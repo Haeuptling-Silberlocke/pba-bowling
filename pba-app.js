@@ -372,6 +372,18 @@ document.getElementById('pba-longonly').addEventListener('click',function(){
   applyFilters();
 });
 
+document.getElementById('pba-reset').addEventListener('click',function(){
+  document.getElementById('pba-search').value='';
+  document.getElementById('pba-season').value='';
+  document.getElementById('pba-cat').value='';
+  document.getElementById('pba-player').value='';
+  longOnly=false;
+  var loBtn=document.getElementById('pba-longonly');
+  if(loBtn)loBtn.classList.remove('active');
+  // Reset dropdowns to full options
+  updateDropdowns('reset');
+});
+
 document.getElementById('pba-prev').addEventListener('click',function(){
   if(currentPage>0){currentPage--;renderPage();}
 });
