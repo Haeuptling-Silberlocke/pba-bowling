@@ -237,7 +237,23 @@ var nextTournament=null;
 function loadNextTournament(){
   var hdrs={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
   var today=new Date().toISOString().split('T')[0];
-  fetch(SB_URL+'/hermie_pba_tournaments?select=name,date,date_raw,channel&date=gte.'+today+'&order=date.asc&limit=1',{headers:hdrs})
+  // 2-stage: Try PBA Tour first, fallback to PBA50/60
+  function tryQuery(path,callback){
+    fetch(SB_URL+path,{headers:hdrs})
+    .then(function(r){return r.json();})
+    .then(function(data){callback(data);})
+    .catch(function(err){console.log('Tournament load: '+err.message);});
+  }
+  // Stage 1: PBA Tour (exclude PBA50/PBA60)
+  tryQuery('/hermie_pba_tournaments?select=name,date,date_raw,channel&date=gte.'+today+'&name=not.ilike.*PBA50*&name=not.ilike.*PBA60*&order=date.asc&limit=1',function(data){
+    if(data&&data.length){nextTournament=data[0];renderNextTournament();}
+    else{
+      // Stage 2: Fallback to PBA50/PBA60
+      tryQuery('/hermie_pba_tournaments?select=name,date,date_raw,channel&date=gte.'+today+'&order=date.asc&limit=1',function(data2){
+        if(data2&&data2.length){nextTournament=data2[0];renderNextTournament();}
+      });
+    }
+  });
   .then(function(r){return r.json();})
   .then(function(data){
     if(data&&data.length){
