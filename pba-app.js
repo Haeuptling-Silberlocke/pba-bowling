@@ -232,6 +232,31 @@ function setupStatClicks(){
   bind('int-stat','interview',false);
 }
 
+// === Next Tournament Loader ===
+var nextTournament=null;
+function loadNextTournament(){
+  var hdrs={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  var today=new Date().toISOString().split('T')[0];
+  fetch(SB_URL+'/hermie_pba_tournaments?select=name,date,date_raw,channel&date=gte.'+today+'&order=date.asc&limit=1',{headers:hdrs})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data&&data.length){
+      nextTournament=data[0];
+      renderNextTournament();
+    }
+  })
+  .catch(function(err){console.log('Tournament load: '+err.message);});
+}
+function renderNextTournament(){
+  var el=document.getElementById('pba-next-tournament');
+  if(!el||!nextTournament)return;
+  var d=nextTournament.date;
+  var parts=d.split('-');
+  var deDate=parts[2]+'.'+parts[1]+'.'+parts[0];
+  el.innerHTML='<span style="background:rgba(230,126,34,0.12);color:#ffa657;padding:9px 16px;border:1px solid rgba(230,126,34,0.3);border-radius:8px;font-size:0.88em;font-weight:600;white-space:nowrap">🏆 N\u00e4chster Tour Stop: '+esc(nextTournament.name.split(' - ')[0])+' – ab '+deDate+'</span>';
+  el.style.display='';
+}
+
 function loadData(){
   var el=document.getElementById('pba-loading');
   el.style.display='block';
@@ -331,6 +356,7 @@ function finishLoad(){
   buildPlayerStats();
   applyFilters();
   setupStatClicks();
+  loadNextTournament();
 }
 
 function applyFilters(){
