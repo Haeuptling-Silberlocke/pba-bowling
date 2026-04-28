@@ -103,6 +103,37 @@ function ytLink(url){
   return'<a class="pba-yt" href="'+esc(url)+'" target="_blank" rel="noopener" title="Auf YouTube ansehen">▶</a>';
 }
 
+// === Next Tournament Banner ===
+var nextTournament=null;
+function loadNextTournament(){
+  var hdrs={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  var today=new Date().toISOString().split('T')[0];
+  function tryQuery(path,cb){
+    fetch(SB_URL+path,{headers:hdrs})
+    .then(function(r){return r.json();})
+    .then(function(d){cb(d);})
+    .catch(function(e){console.log('Tournament error: '+e.message);});
+  }
+  // Stage 1: PBA Tour (exclude PBA50/PBA60)
+  tryQuery('/hermie_pba_tournaments?select=name,date,date_raw,channel&date=gte.'+today+'&name=not.ilike.*PBA50*&name=not.ilike.*PBA60*&order=date.asc&limit=1',function(data){
+    if(data&&data.length){nextTournament=data[0];renderNextTournament();}
+    else{
+      // Stage 2: Fallback to any event
+      tryQuery('/hermie_pba_tournaments?select=name,date,date_raw,channel&date=gte.'+today+'&order=date.asc&limit=1',function(data2){
+        if(data2&&data2.length){nextTournament=data2[0];renderNextTournament();}
+      });
+    }
+  });
+}
+function renderNextTournament(){
+  var el=document.getElementById('pba-next-tournament');
+  if(!el||!nextTournament)return;
+  var parts=nextTournament.date.split('-');
+  var deDate=parts[2]+'.'+parts[1]+'.'+parts[0];
+  el.innerHTML='<span style="background:rgba(230,126,34,0.12);color:#ffa657;padding:9px 16px;border:1px solid rgba(230,126,34,0.3);border-radius:8px;font-size:0.88em;font-weight:600;white-space:nowrap">🏆 N\u00e4chster Tour Stop: '+esc(nextTournament.name.split(' - ')[0])+' – ab '+deDate+'</span>';
+  el.style.display='';
+}
+
 function loadData(){
   var el=document.getElementById('pba-loading');
   el.style.display='block';
@@ -200,6 +231,7 @@ function finishLoad(){
 
   document.getElementById('pba-loading').style.display='none';
   applyFilters();
+  loadNextTournament();
 }
 
 function applyFilters(){
