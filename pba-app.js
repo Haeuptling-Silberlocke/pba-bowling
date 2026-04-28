@@ -192,6 +192,46 @@ function ytLink(url){
   return'<a class="pba-yt" href="'+esc(url)+'" target="_blank" rel="noopener" title="Auf YouTube ansehen">▶</a>';
 }
 
+
+// === Stat Bar Click → Filter ===
+function setupStatClicks(){
+  var map={'stepladder':'stepladder_finals','t300':'televised_300','f5':'friday_five','pwba-stat':'pwba','int-stat':'interview'};
+  // Helper: make clickable + set filter
+  function bind(elId,catVal,isReset){
+    var el=document.getElementById(elId);
+    if(!el)return;
+    var box=el.closest('.pba-stat');
+    if(!box)return;
+    box.style.cursor='pointer';
+    box.addEventListener('click',function(){
+      if(isReset){
+        document.getElementById('pba-search').value='';
+        document.getElementById('pba-season').value='';
+        document.getElementById('pba-cat').value='';
+        document.getElementById('pba-player').value='';
+        longOnly=false;
+        var lb=document.getElementById('pba-longonly');
+        if(lb)lb.classList.remove('active');
+      }else{
+        document.getElementById('pba-cat').value=catVal;
+        document.getElementById('pba-season').value='';
+        document.getElementById('pba-search').value='';
+        document.getElementById('pba-player').value='';
+      }
+      applyFilters();
+    });
+    // Hover effect
+    box.addEventListener('mouseenter',function(){this.style.borderColor='#ffa657';this.style.background='rgba(230,126,34,0.12)';});
+    box.addEventListener('mouseleave',function(){this.style.borderColor='#30363d';this.style.background='rgba(230,126,34,0.06)';});
+  }
+  bind('stat-total',null,true);
+  bind('stepladder','stepladder_finals',false);
+  bind('t300','televised_300',false);
+  bind('f5','friday_five',false);
+  bind('pwba-stat','pwba',false);
+  bind('int-stat','interview',false);
+}
+
 function loadData(){
   var el=document.getElementById('pba-loading');
   el.style.display='block';
@@ -290,6 +330,7 @@ function finishLoad(){
   document.getElementById('pba-loading').style.display='none';
   buildPlayerStats();
   applyFilters();
+  setupStatClicks();
 }
 
 function applyFilters(){
