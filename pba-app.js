@@ -288,7 +288,7 @@ function renderPage(){
       var badge='<span class="pba-badge '+(v.category||'other')+'">'+(catLabels[v.category]||v.category||'--')+'</span>';
       var players=v.players&&v.players.length?fmtPlayers(v.players):'';
       cardHtml+='<div class="pba-card">';
-      cardHtml+='<div class="pba-card-title">'+esc(v.video_title||'--')+' <span data-vid="'+esc(v.video_id||'')+'" onclick="toggleFav(\''+esc(v.video_id||'')+'\')" style="cursor:pointer;font-size:0.9em">'+(isFav(v.video_id)?'\u2605':'\u2606')+'</span></div>';
+      cardHtml+='<div class="pba-card-title"><a class="pba-title-link" href="'+esc(v.youtube_url||'#')+'" target="_blank" rel="noopener" style="color:#e6edf3;text-decoration:none;cursor:pointer" onmouseenter="this.style.color=\'#ffa657\';this.style.textDecoration=\'underline\'" onmouseleave="this.style.color=\'#e6edf3\';this.style.textDecoration=\'none\'">'+esc(v.video_title||'--')+'</a> <span data-vid="'+esc(v.video_id||'')+'" onclick="toggleFav(\''+esc(v.video_id||'')+'\')" style="cursor:pointer;font-size:0.9em">'+(isFav(v.video_id)?'\u2605':'\u2606')+'</span></div>';
       cardHtml+='<div class="pba-card-meta">';
       cardHtml+='<span class="season">'+(v.season||'--')+'</span>';
       cardHtml+=badge;
@@ -312,7 +312,7 @@ function renderPage(){
       var playersHtml=fmtPlayers(v.players);
       html+='<tr>';
       html+='<td class="col-season">'+(v.season||'--')+'</td>';
-      html+='<td class="col-title" title="'+esc(v.video_title||'')+'">'+esc(v.video_title||'--')+'</td>';
+      html+='<td class="col-title" title="'+esc(v.video_title||'')+'"><a class="pba-title-link" href="'+esc(v.youtube_url||'#')+'" target="_blank" rel="noopener" style="color:#e6edf3;text-decoration:none;cursor:pointer" onmouseenter="this.style.color=\'#ffa657\';this.style.textDecoration=\'underline\'" onmouseleave="this.style.color=\'#e6edf3\';this.style.textDecoration=\'none\'">'+esc(v.video_title||'--')+'</a></td>';
       html+='<td class="col-cat">'+badge+'</td>';
       html+='<td class="col-players">'+playersHtml+'</td>';
       html+='<td class="col-views">'+fmtNum(v.views)+'</td>';
